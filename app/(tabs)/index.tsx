@@ -1,74 +1,165 @@
-import { Image, StyleSheet, Platform } from 'react-native';
+import {
+  StyleSheet,
+  View,
+  Text,
+  TouchableOpacity,
+  Dimensions,
+  ScrollView,
+  Button,
+} from "react-native";
+import { Image } from "expo-image";
+import { useLocalSearchParams } from "expo-router";
+import { useEffect } from "react";
 
-import { HelloWave } from '@/components/HelloWave';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
+import commonButtonStyles from "@/stylings/commonStyles";
+import { SafeAreaView } from "react-native-safe-area-context";
+import COLORS from "@/utils/colors";
+import ToastManager from "toastify-react-native";
+import Loading from "@/components/Loading";
+import * as Clipboard from "expo-clipboard";
+import useAnalyzeImage from "@/hooks/useAnalyzeImage";
+import showToasts from "@/utils/toast";
+import { router } from "expo-router";
+
+export const windowWidth = Dimensions.get("window").width;
 
 export default function HomeScreen() {
+  const {
+    isLoading,
+    text,
+    pickImage,
+    image,
+    requestPermission,
+    permission,
+    setImage,
+  } = useAnalyzeImage();
+
+  const { photoUri } = useLocalSearchParams();
+  console.log("photoUri: ", photoUri);
+
+  useEffect(() => {
+    if (photoUri && typeof photoUri === "string" && photoUri !== "") {
+      setImage(photoUri);
+    }
+  }, [photoUri]);
+
+  if (!permission) {
+    return <Loading isLoading={true} />;
+  }
+
+  if (!permission.granted) {
+    return (
+      <View
+        style={[
+          styles.container,
+          { justifyContent: "center", alignItems: "center" },
+        ]}
+      >
+        <Text style={styles.message}>
+          We need your permission to show the camera
+        </Text>
+        <Button onPress={requestPermission} title="GRANT PERMISSION" />
+      </View>
+    );
+  }
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12'
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-        <ThemedText>
-          Tap the Explore tab to learn more about what's included in this starter app.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          When you're ready, run{' '}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+    <SafeAreaView style={styles.container}>
+      <ToastManager
+        duration={3000}
+        showProgressBar={true}
+        position="top"
+        animationStyle="upInUpOut"
+        style={{ width: windowWidth - 50 }}
+      />
+      <Loading isLoading={isLoading} />
+      <ScrollView contentContainerStyle={styles.scrollView}>
+        <View style={styles.wrapperImage}>
+          <Image
+            source={{ uri: image }}
+            style={styles.image}
+            contentFit="contain"
+          />
+        </View>
+        <View style={styles.wrapperButton}>
+          <TouchableOpacity
+            style={commonButtonStyles.buttonPrimary}
+            onPress={() => {
+              router.navigate({
+                pathname: "/camera-component",
+                params: {
+                  onPhotoTaken: "true",
+                  photoUri: "ok",
+                },
+              });
+            }}
+            activeOpacity={0.8}
+          >
+            <Text style={commonButtonStyles.buttonText}>Chụp ảnh</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[commonButtonStyles.buttonPrimary, { marginTop: 8 }]}
+            activeOpacity={0.8}
+            onPress={pickImage}
+          >
+            <Text style={commonButtonStyles.buttonText}>Chọn ảnh</Text>
+          </TouchableOpacity>
+        </View>
+        {text && (
+          <View style={styles.wrapperText}>
+            <Text style={styles.textResult}>Kết quả: </Text>
+            <Text>{text}</Text>
+            <TouchableOpacity
+              style={[commonButtonStyles.buttonPrimary, { marginTop: 8 }]}
+              onPress={() => {
+                Clipboard.setStringAsync(text);
+                showToasts({ type: "info", message: "Đã copy vào bộ nhớ" });
+              }}
+              activeOpacity={0.8}
+            >
+              <Text style={commonButtonStyles.buttonText}>Copy</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  container: {
+    flex: 1,
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  buttonText: {
+    color: COLORS.WHITE,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  wrapperImage: {
+    width: windowWidth - 50,
+    height: windowWidth - 100,
+    alignSelf: "center",
+    justifyContent: "center",
+    marginBottom: 20,
+  },
+  image: {
+    width: "100%",
+    height: "100%",
+  },
+  wrapperButton: {
+    marginHorizontal: 25,
+  },
+  wrapperText: {
+    marginHorizontal: 25,
+  },
+  scrollView: {
+    paddingBottom: 80,
+  },
+  message: {
+    fontSize: 16,
+    textAlign: "center",
+  },
+  textResult: {
+    fontSize: 16,
+    fontWeight: "bold",
+    marginVertical: 8,
   },
 });

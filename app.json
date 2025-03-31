@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "ocr-app-demo",
+    "name": "AI Text Scanner",
     "slug": "ocr-app-demo",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -31,6 +31,20 @@
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "The app accesses your photos to let you share them with your friends."
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow AI Text Scanner to access your camera",
+          "microphonePermission": "Allow AI Text Scanner to access your microphone",
+          "recordAudioAndroid": true
         }
       ]
     ],
