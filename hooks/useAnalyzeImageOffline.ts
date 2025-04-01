@@ -5,15 +5,18 @@ import * as ImagePicker from "expo-image-picker";
 import * as FileSystem from "expo-file-system";
 import showToasts from "@/utils/toast";
 import axios from "axios";
-import { useCameraPermissions } from 'expo-camera';
+import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
 import { API_URL } from "@/utils/keys";
+import TextRecognition from '@react-native-ml-kit/text-recognition';
 
 
-const useAnalyzeImage = () => {
+
+const useAnalyzeImageOffline = () => {
     const [image, setImage] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [text, setText] = useState<string>("");
     const [permission, requestPermission] = useCameraPermissions();
+
 
     useEffect(() => {
         if (image) {
@@ -47,34 +50,22 @@ const useAnalyzeImage = () => {
             }
             setIsLoading(true);
 
-            const base64Image = await FileSystem.readAsStringAsync(image, {
-                encoding: FileSystem.EncodingType.Base64,
-            });
+            const result = await TextRecognition.recognize(image);
 
-            const requestBody = {
-                requests: [
-                    {
-                        image: {
-                            content: base64Image,
-                        },
-                        features: [
-                            {
-                                type: "TEXT_DETECTION",
-                                maxResults: 1,
-                            },
-                        ],
-                    },
-                ],
-            };
+            console.log('Recognized text:', result.text);
 
-            const response = await axios.post(API_URL, requestBody);
-            const value = response.data.responses[0].textAnnotations[0].description;
-            if (value) {
-                setText(value);
-            } else {
-                setText("Không tìm thấy kết quả");
+            for (let block of result.blocks) {
+                console.log('Block text:', block.text);
+                console.log('Block frame:', block.frame);
+
+                for (let line of block.lines) {
+                    console.log('Line text:', line.text);
+                    console.log('Line frame:', line.frame);
+                }
             }
+
         } catch (error) {
+            console.log('error: ', error)
             showToasts({ type: "error", message: "Lỗi phân tích ảnh" });
         } finally {
             setIsLoading(false);
@@ -84,4 +75,4 @@ const useAnalyzeImage = () => {
     return { isLoading, text, pickImage, image, requestPermission, permission, setIsLoading, setImage };
 };
 
-export default useAnalyzeImage;
+export default useAnalyzeImageOffline;

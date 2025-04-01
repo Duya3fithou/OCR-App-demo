@@ -1,11 +1,11 @@
-import { View, Text  } from "react-native"
+import React from 'react';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import ClipboardHistory from '@/components/ClipboardHistory';
 
-const Clipboard = () => {
-    return (
-        <View>
-            <Text>Clipboard</Text>
-        </View>
-    )
-}   
-
-export default Clipboard;
+export default function ClipboardScreen() {
+  return (
+    <SafeAreaView style={{ flex: 1 }}>
+      <ClipboardHistory />
+    </SafeAreaView>
+  );
+}

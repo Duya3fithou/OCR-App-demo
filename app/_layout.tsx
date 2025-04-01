@@ -12,6 +12,9 @@ import "react-native-reanimated";
 
 import { useColorScheme } from "@/hooks/useColorScheme";
 import COLORS from "@/utils/colors";
+import { windowWidth } from "./(tabs)/offline-mode";
+import ToastManager from "toastify-react-native";
+import { ActionSheetProvider } from "@expo/react-native-action-sheet";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -33,28 +36,38 @@ export default function RootLayout() {
   }
 
   return (
-    <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-      <Stack
-        screenOptions={{
-          headerStyle: {
-            backgroundColor: COLORS.PRIMARY_RED,
-          },
-          headerTintColor: COLORS.WHITE,
-          headerTitleStyle: {
-            fontWeight: "bold",
-          },
-          headerBackButtonDisplayMode: "minimal",
-        }}
-      >
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="offline-mode" options={{ headerShown: false }} />
-        <Stack.Screen
-          name="camera-component"
-          options={{ headerShown: false }}
+    <ActionSheetProvider>
+      <ThemeProvider value={DefaultTheme}>
+        <ToastManager
+          duration={5000}
+          showProgressBar={true}
+          position="top"
+          animationStyle="upInUpOut"
+          style={{ width: windowWidth - 50 }}
         />
-        <Stack.Screen name="+not-found" />
-      </Stack>
-      <StatusBar style="auto" />
-    </ThemeProvider>
+        <Stack
+          screenOptions={{
+            headerStyle: {
+              backgroundColor: COLORS.PRIMARY_RED_OFFLINE,
+            },
+            headerTintColor: COLORS.WHITE,
+            headerTitleStyle: {
+              fontWeight: "bold",
+            },
+            headerBackButtonDisplayMode: "minimal",
+          }}
+        >
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="offline-mode" options={{ headerShown: false }} />
+          <Stack.Screen
+            name="camera-component"
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen name="+not-found" />
+          <Stack.Screen name="edit-component" options={{ headerShown: false }} />
+        </Stack>
+        <StatusBar style="auto" />
+      </ThemeProvider>
+    </ActionSheetProvider>
   );
 }

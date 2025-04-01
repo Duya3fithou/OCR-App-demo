@@ -6,20 +6,23 @@ import {
   Dimensions,
   ScrollView,
   Button,
+  Alert,
+  DeviceEventEmitter,
 } from "react-native";
 import { Image } from "expo-image";
 import { useLocalSearchParams } from "expo-router";
 import { useEffect } from "react";
+import { useClipboardHistory } from "@/hooks/useClipboardHistory";
 
 import commonButtonStyles from "@/stylings/commonStyles";
 import { SafeAreaView } from "react-native-safe-area-context";
 import COLORS from "@/utils/colors";
-import ToastManager from "toastify-react-native";
 import Loading from "@/components/Loading";
 import * as Clipboard from "expo-clipboard";
 import useAnalyzeImage from "@/hooks/useAnalyzeImage";
 import showToasts from "@/utils/toast";
 import { router } from "expo-router";
+import NetInfo from "@react-native-community/netinfo";
 
 export const windowWidth = Dimensions.get("window").width;
 
@@ -34,14 +37,52 @@ export default function HomeScreen() {
     setImage,
   } = useAnalyzeImage();
 
+  const { addToHistory } = useClipboardHistory();
+
   const { photoUri } = useLocalSearchParams();
-  console.log("photoUri: ", photoUri);
 
   useEffect(() => {
     if (photoUri && typeof photoUri === "string" && photoUri !== "") {
       setImage(photoUri);
     }
   }, [photoUri]);
+
+  useEffect(() => {
+    const unsubscribe = NetInfo.addEventListener((state) => {
+      if (!state.isConnected) {
+        Alert.alert(
+          "Không có kết nối internet",
+          "Vui lòng kiểm tra kết nối internet",
+          [
+            {
+              text: "Chuyển sang chế độ offline",
+              onPress: () => {
+                router.navigate({
+                  pathname: "/offline-mode",
+                  params: {
+                    photoUri: "ok",
+                  },
+                });
+              },
+              style: "destructive",
+            },
+            {
+              text: "Tôi hiểu",
+              onPress: () => null,
+              style: "cancel",
+            },
+          ],
+          {
+            userInterfaceStyle: "dark",
+          }
+        );
+      }
+    });
+
+    () => {
+      unsubscribe();
+    };
+  }, []);
 
   if (!permission) {
     return <Loading isLoading={true} />;
@@ -65,15 +106,8 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ToastManager
-        duration={3000}
-        showProgressBar={true}
-        position="top"
-        animationStyle="upInUpOut"
-        style={{ width: windowWidth - 50 }}
-      />
-      <Loading isLoading={isLoading} />
       <ScrollView contentContainerStyle={styles.scrollView}>
+      <Loading isLoading={isLoading} />
         <View style={styles.wrapperImage}>
           <Image
             source={{ uri: image }}
@@ -111,8 +145,10 @@ export default function HomeScreen() {
             <Text>{text}</Text>
             <TouchableOpacity
               style={[commonButtonStyles.buttonPrimary, { marginTop: 8 }]}
-              onPress={() => {
-                Clipboard.setStringAsync(text);
+              onPress={async () => {
+                await Clipboard.setStringAsync(text);
+                await addToHistory(text);
+                DeviceEventEmitter.emit('clipboard-history-updated');
                 showToasts({ type: "info", message: "Đã copy vào bộ nhớ" });
               }}
               activeOpacity={0.8}

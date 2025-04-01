@@ -17,6 +17,17 @@ const commonButtonStyles = StyleSheet.create({
     fontSize: 18,
     textTransform: "uppercase",
   },
+
+  buttonPrimaryOffline: {
+    justifyContent: 'center',
+    backgroundColor: COLORS.BLACK_50,
+    borderRadius: 8,
+    paddingVertical: 16,
+    borderWidth: 2,
+    borderColor: COLORS.WHITE,
+    alignItems: "center",
+
+  },
 });
 
 export default commonButtonStyles;

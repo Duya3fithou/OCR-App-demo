@@ -8,7 +8,7 @@ import commonButtonStyles from "@/stylings/commonStyles";
 const CameraCpn = () => {
   const navigation = useNavigation();
   const ref = useRef<CameraView>(null);
-
+  const { isOffline } = useLocalSearchParams();
   const handlePhotoTaken = async () => {
     try {
       const photo: any = await ref?.current?.takePictureAsync();
@@ -22,14 +22,14 @@ const CameraCpn = () => {
   };
 
   useEffect(() => {
-    navigation.setOptions({ title: "Camera" });
+    navigation.setOptions({ title: isOffline ? "Offline Mode" : "Camera",  });
   }, [navigation]);
 
   return (
     <View style={styles.container}>
       <CameraView style={styles.wrapperImage} facing={"back"} ref={ref} />
       <TouchableOpacity
-        style={[commonButtonStyles.buttonPrimary, { marginHorizontal: 25 }]}
+        style={[isOffline ? commonButtonStyles.buttonPrimaryOffline : commonButtonStyles.buttonPrimary, { marginHorizontal: 25 }]}
         onPress={handlePhotoTaken}
         activeOpacity={0.8}
       >

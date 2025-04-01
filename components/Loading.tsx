@@ -1,6 +1,6 @@
 import COLORS from "@/utils/colors";
 import { SkypeIndicator } from "react-native-indicators";
-import { StyleSheet, View } from "react-native";
+import { StyleSheet, View, Dimensions } from "react-native";
 
 const Loading = ({ isLoading }: { isLoading: boolean }) => {
   if (!isLoading) return null;
@@ -15,12 +15,13 @@ const Loading = ({ isLoading }: { isLoading: boolean }) => {
 
 const styles = StyleSheet.create({
   ctn: {
-    ...StyleSheet.absoluteFillObject,
     alignItems: "center",
     flex: 1,
     justifyContent: "center",
     position: "absolute",
     zIndex: 2,
+    width: "100%",
+    height: Dimensions.get("window").height - 90,
   },
   loadingCtn: {
     alignItems: "center",
