@@ -1,48 +1,83 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useState, useEffect, useCallback } from 'react';
+import * as SQLite from 'expo-sqlite';
 
-const CLIPBOARD_HISTORY_KEY = '@clipboard_history';
+const db = SQLite.openDatabaseSync('clipboard.db');
 const MAX_HISTORY_ITEMS = 10;
 
 interface ClipboardItem {
+  id: number;
   text: string;
   timestamp: number;
 }
 
+// Hàm escape các ký tự đặc biệt trong SQL
+const escapeSQLString = (str: string): string => {
+  return str
+    .replace(/'/g, "''") 
+    .replace(/"/g, '""') 
+    .replace(/\\/g, '\\\\') 
+    .replace(/\$/g, '\\$') 
+    .replace(/%/g, '\\%') 
+    .replace(/_/g, '\\_') 
+    .replace(/\[/g, '\\[') 
+    .replace(/\]/g, '\\]') 
+    .replace(/\(/g, '\\(') 
+    .replace(/\)/g, '\\)') 
+    .replace(/\*/g, '\\*') 
+    .replace(/\+/g, '\\+') 
+    .replace(/\?/g, '\\?') 
+    .replace(/\|/g, '\\|') 
+    .replace(/\{/g, '\\{') 
+    .replace(/\}/g, '\\}') 
+    .replace(/</g, '\\<') 
+    .replace(/>/g, '\\>') 
+    .replace(/\^/g, '\\^') 
+    .replace(/`/g, '\\`') 
+    .replace(/~/g, '\\~') 
+    .replace(/!/g, '\\!') 
+    .replace(/&/g, '\\&') 
+    .replace(/#/g, '\\#'); 
+};
+
 export const useClipboardHistory = () => {
   const [history, setHistory] = useState<ClipboardItem[]>([]);
 
-  const loadHistory = useCallback(async () => {
-    try {
-      const savedHistory = await AsyncStorage.getItem(CLIPBOARD_HISTORY_KEY);
-      if (savedHistory) {
-        const parsedHistory = JSON.parse(savedHistory);
-        setHistory(parsedHistory);
-      }
-    } catch (error) {
-      console.error('Error loading clipboard history:', error);
-    }
+  const initDatabase = useCallback(() => {
+    db.execSync(
+      'CREATE TABLE IF NOT EXISTS clipboard_history (id INTEGER PRIMARY KEY AUTOINCREMENT, text TEXT, timestamp INTEGER);'
+    );
   }, []);
 
   useEffect(() => {
+    initDatabase();
     loadHistory();
-  }, [loadHistory]);
+  }, [initDatabase]);
+
+  const loadHistory = useCallback(() => {
+    const result = db.getAllSync<ClipboardItem>(
+      `SELECT * FROM clipboard_history ORDER BY timestamp DESC LIMIT ${MAX_HISTORY_ITEMS};`
+    );
+    setHistory(result);
+  }, []);
 
   const addToHistory = useCallback(async (text: string) => {
-    console.log('history: ', history)
+    const timestamp = Date.now();
+    const escapedText = escapeSQLString(text);
+    
     try {
-      const newItem: ClipboardItem = {
-        text,
-        timestamp: Date.now(),
-      };
+      db.execSync(
+        `INSERT INTO clipboard_history (text, timestamp) VALUES ('${escapedText}', ${timestamp});`
+      );
 
-      const updatedHistory = [newItem, ...history].slice(0, MAX_HISTORY_ITEMS);
-      await AsyncStorage.setItem(CLIPBOARD_HISTORY_KEY, JSON.stringify(updatedHistory));
-      setHistory(updatedHistory);
+      db.execSync(
+        `DELETE FROM clipboard_history WHERE id NOT IN (SELECT id FROM clipboard_history ORDER BY timestamp DESC LIMIT ${MAX_HISTORY_ITEMS});`
+      );
+
+      loadHistory();
     } catch (error) {
-      console.error('Error saving to clipboard history:', error);
+      console.error('Error in addToHistory:', error);
     }
-  }, [history.length]);
+  }, [loadHistory]);
 
   const editHistoryItem = useCallback(async (editedText: string, index: number) => {
     try {
@@ -51,28 +86,32 @@ export const useClipboardHistory = () => {
         return;
       }
 
-      const updatedHistory = [...history];
-      updatedHistory[index] = {
-        ...updatedHistory[index],
-        text: editedText,
-        timestamp: Date.now() // Cập nhật timestamp khi sửa
-      };
+      const item = history[index];
+      if (!item || !item.id) {
+        return;
+      }
 
-      await AsyncStorage.setItem(CLIPBOARD_HISTORY_KEY, JSON.stringify(updatedHistory));
-      setHistory(updatedHistory);
+      const timestamp = Date.now();
+      const escapedText = escapeSQLString(editedText);
+
+      db.execSync(
+        `UPDATE clipboard_history SET text = '${escapedText}', timestamp = ${timestamp} WHERE id = ${item.id};`
+      );
+
+      loadHistory();
     } catch (error) {
-      console.error('Error editing clipboard history item:', error);
+      console.error('Error in editHistoryItem:', error);
     }
-  }, [history.length]);
+  }, [history, loadHistory]);
 
-  const clearHistory = useCallback(async () => {
+  const clearHistory = useCallback(() => {
     try {
-      await AsyncStorage.setItem(CLIPBOARD_HISTORY_KEY, JSON.stringify([]));
+      db.execSync('DELETE FROM clipboard_history;');
       setHistory([]);
     } catch (error) {
-      console.error('Error clearing clipboard history:', error);
+      console.error('Error in clearHistory:', error);
     }
-  }, [history.length]);
+  }, []);
 
   return {
     history,

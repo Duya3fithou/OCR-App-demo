@@ -4,13 +4,14 @@ import {
   TextInput,
   StyleSheet,
   TouchableOpacity,
+  Keyboard,
 } from "react-native";
 import { useEffect, useState } from "react";
 import commonButtonStyles from "@/stylings/commonStyles";
 import { router, useLocalSearchParams, useNavigation } from "expo-router";
 
 const EditComponent = () => {
-    const navigation = useNavigation();
+  const navigation = useNavigation();
   const { textParams, index } = useLocalSearchParams();
   const [text, setText] = useState(textParams as string);
 
@@ -19,10 +20,22 @@ const EditComponent = () => {
   }, [navigation]);
 
   return (
-    <View style={styles.container}>
-      <TextInput value={text} onChangeText={setText} style={styles.input} multiline={true} />
+    <TouchableOpacity
+      style={styles.container}
+      activeOpacity={1}
+      onPress={() => Keyboard.dismiss()}
+    >
+      <TextInput
+        value={text}
+        onChangeText={setText}
+        style={styles.input}
+        multiline={true}
+      />
       <TouchableOpacity
-        style={[commonButtonStyles.buttonPrimary, { marginTop: 8, width: "100%" }]}
+        style={[
+          commonButtonStyles.buttonPrimary,
+          { marginTop: 8, width: "100%" },
+        ]}
         activeOpacity={0.8}
         onPress={() => {
           router.back();
@@ -31,7 +44,7 @@ const EditComponent = () => {
       >
         <Text style={commonButtonStyles.buttonText}>Lưu</Text>
       </TouchableOpacity>
-    </View>
+    </TouchableOpacity>
   );
 };
 
